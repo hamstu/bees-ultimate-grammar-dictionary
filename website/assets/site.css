@@ -317,6 +317,8 @@ kbd {
 .search-form input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font-size: 1rem; padding: 10px 0; color: var(--ink); }
 .search-form input:focus-visible { box-shadow: none; }
 .search-form input::placeholder { color: var(--ink-3); }
+.romaji-hint { margin: 8px 0 0; font-size: 0.8125rem; color: var(--ink-3); letter-spacing: 0.02em; }
+.romaji-hint span { margin-left: 4px; font-family: var(--font-hand); font-size: 1rem; font-weight: 600; color: var(--ink); }
 
 .filters { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 16px 0 24px; flex-wrap: wrap; }
 .level-filters { display: flex; flex-wrap: wrap; border: var(--frame-w) solid var(--ink); }

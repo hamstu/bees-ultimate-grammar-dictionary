@@ -181,7 +181,7 @@ def shell(title: str, body: str, *, root: str, path: str, english: bool,
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&amp;family=Klee+One:wght@400;600&amp;display=swap">
 <link rel="icon" href="{root}assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="{root}assets/site.css">
-<script src="{root}assets/site.js" defer></script></head>
+<script src="{root}assets/romaji.js" defer></script><script src="{root}assets/site.js" defer></script></head>
 <body data-root="{root}" data-english="{'true' if english else 'false'}"><a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="header-inner"><a class="brand" href="{home}">{BEE}<span>bee’s<span class="brand-sub">grammar dictionary</span></span></a>
 {prefs()}</div></header>
@@ -220,7 +220,8 @@ def homepage(records: list[dict], labels: dict, example_count: int, *, english: 
 <div class="paper-bottom"><span>One point. Many perspectives.</span><span>↗</span></div></div><span class="art-star">✳</span></div></section>'''
     body = f'''<section class="library wrap" id="library"><div class="section-heading"><div class="eyebrow">THE GRAMMAR LIBRARY</div><h1>Find your next <em>“aha”.</em></h1><p>Look up a particle, explore a pattern, or see what clicks.</p></div>
 <form class="search-form" role="search"><label class="sr-only" for="grammar-search">Search grammar, meaning or reading</label><span class="search-icon" aria-hidden="true">⌕</span>
-<input id="grammar-search" name="q" type="search" placeholder="Search grammar, meaning or reading…" autocomplete="off"><kbd aria-hidden="true">/</kbd></form>
+<input id="grammar-search" name="q" type="search" placeholder="Search grammar, meaning, reading or romaji…" autocomplete="off" autocapitalize="off" spellcheck="false"><kbd aria-hidden="true">/</kbd></form>
+<p class="romaji-hint" id="romaji-hint" aria-live="polite" hidden>Romaji also matches <span lang="ja"></span></p>
 <div class="filters"><div class="level-filters" role="group" aria-label="Filter by JLPT level"><button type="button" class="active" data-level="" aria-pressed="true">All levels</button>
 {''.join(f'<button type="button" data-level="{level}" aria-pressed="false">{level}</button>' for level in ('N5','N4','N3','N2','N1'))}</div>
 <label class="source-filter">Source <select id="source-filter"><option value="">All sources</option>{options}</select></label></div>

@@ -46,6 +46,8 @@ if (search) {
   const more = document.querySelector("#load-more");
   const empty = document.querySelector("#search-empty");
   const error = document.querySelector("#search-error");
+  const hint = document.querySelector("#romaji-hint");
+  const romaji = globalThis.Romaji;
   const params = new URLSearchParams(location.search);
   let level = params.get("level") || "";
   let records = null;
@@ -58,12 +60,28 @@ if (search) {
   function render(reset = true) {
     if (!records) return;
     if (reset) shown = 36;
-    const words = fold(search.value).split(" ").filter(Boolean);
+    const query = fold(search.value);
+    const words = query.split(" ").filter(Boolean);
+    // Romaji ("nagara", "wake ni wa ikanai") also searches the kana it spells;
+    // the raw words still match, so English meanings keep working.
+    const spelled = romaji ? romaji.romajiToKana(search.value) || [] : [];
+    const kana = spelled.map(form => romaji.looseKana(form)).filter(Boolean);
+    hint.hidden = !spelled.length;
+    if (spelled.length) hint.querySelector("span").textContent = spelled[0];
+    // When the query reads as romaji, its words only match English as whole
+    // words, so "te mo" is not also every entry containing "te" and "mo".
+    const whole = spelled.length ? words.map(word => new RegExp(`(^|[^a-z])${word.replace(/[^a-z]/g, "\\$&")}($|[^a-z])`)) : null;
+    const plain = record => whole ? whole.every(pattern => pattern.test(record.search)) : words.every(word => record.search.includes(word));
     matches = records.filter(record => (!level || record.levels.includes(level)) &&
-      (!source.value || record.sources.includes(source.value)) && words.every(word => record.search.includes(word)));
+      (!source.value || record.sources.includes(source.value)) &&
+      (plain(record) || kana.some(form => record.loose.includes(form))));
     if (words.length) {
-      const query = fold(search.value);
-      const rank = record => fold(record.expression) === query ? 0 : fold(record.expression).startsWith(query) ? 1 : 2;
+      const rank = record => {
+        const expression = fold(record.expression);
+        if (expression === query || kana.includes(record.looseExpression)) return 0;
+        if (expression.startsWith(query) || kana.some(form => record.looseExpression.startsWith(form))) return 1;
+        return kana.some(form => record.looseExpression.includes(form)) ? 2 : 3;
+      };
       matches.sort((a, b) => rank(a) - rank(b));
     }
     const fragment = document.createDocumentFragment();
@@ -77,11 +95,11 @@ if (search) {
       button.classList.toggle("active", active);
       button.setAttribute("aria-pressed", String(active));
     }
-    const query = new URLSearchParams();
-    if (search.value) query.set("q", search.value);
-    if (level) query.set("level", level);
-    if (source.value) query.set("source", source.value);
-    history.replaceState(null, "", location.pathname + (query.size ? "?" + query : "") + location.hash);
+    const state = new URLSearchParams();
+    if (search.value) state.set("q", search.value);
+    if (level) state.set("level", level);
+    if (source.value) state.set("source", source.value);
+    history.replaceState(null, "", location.pathname + (state.size ? "?" + state : "") + location.hash);
   }
 
   async function load() {
@@ -90,7 +108,13 @@ if (search) {
       const response = await fetch(root + (english ? "en/" : "") + "search.json");
       if (!response.ok) throw new Error("Search is unavailable");
       records = await response.json();
-      for (const record of records) record.search = fold(record.terms + " " + record.summary);
+      for (const record of records) {
+        record.search = fold(record.terms + " " + record.summary);
+        if (romaji) {
+          record.loose = romaji.looseKana(record.search);
+          record.looseExpression = romaji.looseKana(fold(record.expression));
+        }
+      }
       render();
     } catch {
       error.hidden = false;

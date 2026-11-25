@@ -35,7 +35,7 @@ ZIP := build/bees-ultimate-grammar-dictionary.zip
 # `all` remains the original-source extraction and merge pipeline.
 .DEFAULT_GOAL := release
 
-.PHONY: all personal release verify-release verify-popup extract keymap merge build site translate-english publish-data validate validate-node audit-packaged \
+.PHONY: all personal release verify-release verify-popup extract keymap merge build site translate-english publish-data validate validate-node audit-packaged test-js \
         audit-attribution test scan-polarity clean help
 
 help:
@@ -117,6 +117,10 @@ validate-node:
 
 test:
 	$(PY) -m pytest -q
+
+# Website search helpers (romaji → kana); plain node:test, no npm install.
+test-js:
+	$(NODE) --test tests/js/*.test.mjs
 
 # Corpus scan for the UGD-11c-A polarity-flipped-headword property: after
 # extraction, no 〜ある headword may contradict its own (negative) reading.
