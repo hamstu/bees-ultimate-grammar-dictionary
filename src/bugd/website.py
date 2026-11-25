@@ -141,25 +141,57 @@ def search_record(entry: dict, *, english: bool = False) -> dict:
 BEE = '<svg class="bee" viewBox="0 0 40 40" aria-hidden="true"><path d="M17 14c-9-14-17 0-6 6M23 14c9-14 17 0 6 6" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="20" cy="24" rx="10" ry="11" fill="currentColor"/><path d="M12 20h16M11 26h18" stroke="var(--paper)" stroke-width="3"/><path d="M16 13l-3-5m11 5 3-5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
 
 
+# Drawn marks for the display controls, in currentColor so both printings work.
+SUN = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>'
+MOON = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 10.2A5.5 5.5 0 0 1 5.8 3a5.5 5.5 0 1 0 7.2 7.2Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>'
+AUTO = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 13.5 13.5 2.5V13.5Z" fill="currentColor"/></svg>'
+# Paint the stored printing and text size before the first frame, so the sheet
+# never flashes white on the way to night. site.js owns both after load.
+PREPAINT = ("<script>(function(){var d=document.documentElement,m='system',s=2;"
+            "try{m=localStorage.getItem('bg-theme')||m;s=+(localStorage.getItem('bg-size')||s)}catch(e){}"
+            "var k=m==='dark'||(m!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);"
+            "d.dataset.theme=k?'dark':'light';d.dataset.themeChoice=m;"
+            "d.dataset.size=(s>=0&&s<=5)?String(s|0):'2';d.classList.add('js')})()</script>")
+
+
+def prefs() -> str:
+    """Theme (day / night / follow the device) and text size, in the imprint on every page."""
+    themes = "".join(f'<button type="button" data-theme-mode="{mode}" aria-pressed="false" title="{label}">{mark}<span class="sr-only">{label}</span></button>'
+                     for mode, label, mark in (("light", "Light theme", SUN), ("dark", "Dark theme", MOON),
+                                               ("system", "Match device theme", AUTO)))
+    return (f'<div class="prefs"><div class="theme-switch" role="group" aria-label="Colour theme">{themes}</div>'
+            '<button type="button" class="theme-cycle" aria-label="Colour theme"><span class="cycle-mark" aria-hidden="true"></span></button>'
+            '<div class="size-switch" role="group" aria-label="Text size">'
+            '<button type="button" data-size-step="-1" aria-label="Smaller text"><span aria-hidden="true">A</span><span class="size-sign" aria-hidden="true">−</span></button>'
+            '<output class="size-value" aria-live="polite">100%</output>'
+            '<button type="button" data-size-step="1" aria-label="Larger text"><span aria-hidden="true" class="size-big">A</span><span class="size-sign" aria-hidden="true">+</span></button></div></div>')
+
+
 def shell(title: str, body: str, *, root: str, path: str, english: bool,
           alternate: str, description: str = "Explore Japanese grammar with all explanations in one place.") -> str:
     home = root + ("en/" if english else "")
+    current = "library" if path in {"", "en/"} else "sources" if path == "sources/" else ""
+    aria = lambda name: ' aria-current="page"' if current == name else ''
     return f'''<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en" data-theme="light"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{escape(title)} · Bee’s Grammar</title><meta name="description" content="{escape(description)}">
-<meta name="theme-color" content="#f7f5ef"><link rel="canonical" href="{SITE_URL}/{path}">
+<meta name="theme-color" content="#f5f5f0"><link rel="canonical" href="{SITE_URL}/{path}">
 <meta property="og:title" content="{escape(title)} · Bee’s Grammar"><meta property="og:description" content="{escape(description)}">
+{PREPAINT}
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&amp;family=Klee+One:wght@400;600&amp;display=swap">
 <link rel="icon" href="{root}assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="{root}assets/site.css">
-<script src="{root}assets/site.js" defer></script></head>
+<script src="{root}assets/romaji.js" defer></script><script src="{root}assets/site.js" defer></script></head>
 <body data-root="{root}" data-english="{'true' if english else 'false'}"><a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="header-inner"><a class="brand" href="{home}">{BEE}<span>bee’s<span class="brand-sub">grammar dictionary</span></span></a>
-<nav aria-label="Main navigation"><a href="{home}#library">The library</a><a class="sources-nav" href="{root}sources/">Our sources</a>
+{prefs()}</div></header>
+<div class="sheet"><nav class="site-nav" aria-label="Main navigation"><a href="{home}#library"{aria("library")}>The library</a><a class="sources-nav" href="{root}sources/"{aria("sources")}>Our sources</a>
 <a class="edition-link" href="{alternate}">{'Original sources' if english else 'English edition'} <span aria-hidden="true">↗</span></a>
-<a class="download-nav" href="{home}#download">Get the dictionary <span aria-hidden="true">↓</span></a></nav></div></header>
+<a class="download-nav" href="{home}#download">Get the dictionary <span aria-hidden="true">↓</span></a></nav>
 <main id="main">{body}</main>
 <footer class="site-footer"><div class="footer-inner"><a class="brand" href="{home}">{BEE}<span>bee’s<span class="brand-sub">made for the curious</span></span></a>
 <p>A little more understanding, one grammar point at a time.</p><a href="{REPO_URL}">Made by Bee · GitHub ↗</a></div>
-<div class="footer-credit">Explanations belong to their credited sources. {'English translations by GPT-6 Luna; originals included for reference.' if english else 'Original source text, brought together with care.'}</div></footer></body></html>'''
+<div class="footer-credit">Explanations belong to their credited sources. {'English translations by GPT-6 Luna; originals included for reference.' if english else 'Original source text, brought together with care.'}</div></footer></div></body></html>'''
 
 
 def card(record: dict, *, root: str = "") -> str:
@@ -188,7 +220,8 @@ def homepage(records: list[dict], labels: dict, example_count: int, *, english: 
 <div class="paper-bottom"><span>One point. Many perspectives.</span><span>↗</span></div></div><span class="art-star">✳</span></div></section>'''
     body = f'''<section class="library wrap" id="library"><div class="section-heading"><div class="eyebrow">THE GRAMMAR LIBRARY</div><h1>Find your next <em>“aha”.</em></h1><p>Look up a particle, explore a pattern, or see what clicks.</p></div>
 <form class="search-form" role="search"><label class="sr-only" for="grammar-search">Search grammar, meaning or reading</label><span class="search-icon" aria-hidden="true">⌕</span>
-<input id="grammar-search" name="q" type="search" placeholder="Search grammar, meaning or reading…" autocomplete="off"><kbd aria-hidden="true">/</kbd></form>
+<input id="grammar-search" name="q" type="search" placeholder="Search grammar, meaning, reading or romaji…" autocomplete="off" autocapitalize="off" spellcheck="false"><kbd aria-hidden="true">/</kbd></form>
+<p class="romaji-hint" id="romaji-hint" aria-live="polite" hidden>Romaji also matches <span lang="ja"></span></p>
 <div class="filters"><div class="level-filters" role="group" aria-label="Filter by JLPT level"><button type="button" class="active" data-level="" aria-pressed="true">All levels</button>
 {''.join(f'<button type="button" data-level="{level}" aria-pressed="false">{level}</button>' for level in ('N5','N4','N3','N2','N1'))}</div>
 <label class="source-filter">Source <select id="source-filter"><option value="">All sources</option>{options}</select></label></div>
@@ -253,8 +286,8 @@ def point_page(entry: dict, labels: dict, original: dict, *, english: bool, figu
     toc, sections = [], []
     for source, points in points_by_source.items():
         label = source_label(points[0], labels)
-        toc.append(f'<a href="#source-{escape(source)}">{escape(label)}</a>')
-        senses = []
+        number = len(sections) + 1
+        senses, sense_links = [], []
         for index, point in enumerate(points, 1):
             translation = point.get("provenance", {}).get("englishTranslation")
             translation_badge = '<span class="translation-badge">Luna English translation</span>' if translation else ''
@@ -269,8 +302,11 @@ def point_page(entry: dict, labels: dict, original: dict, *, english: bool, figu
             original_point = original_points.get(point.get("row_uid") or point["source_id"], point)
             original_disclosure = f'<details class="original"><summary>Read the original source text</summary>{fields_html(original_point)}</details>' if translation else ''
             lesson_title = point.get("provenance", {}).get("lessonTitle") if source == "imabi" else None
-            heading = (f'<h3 class="sense-heading">{escape(lesson_title)}</h3>' if lesson_title else
-                       f'<h3 class="sense-heading">Usage {index}</h3>' if len(points) > 1 else '')
+            heading_text = lesson_title or (f'Usage {index}' if len(points) > 1 else '')
+            heading = f'<h3 class="sense-heading">{escape(heading_text)}</h3>' if heading_text else ''
+            sense_id = f'source-{escape(source)}-{index}'
+            if heading_text:
+                sense_links.append(f'<li><a href="#{sense_id}">{escape(heading_text)}</a></li>')
             lesson_url = safe_url(point.get("provenance", {}).get("lessonUrl")) if lesson_title else ''
             if lesson_url:
                 heading += f'<a class="upstream-link" href="{escape(lesson_url)}" rel="noreferrer">Read this IMABI lesson ↗</a>'
@@ -280,12 +316,14 @@ def point_page(entry: dict, labels: dict, original: dict, *, english: bool, figu
                 if page_url:
                     heading += f'<a class="upstream-link" href="{escape(page_url)}" rel="noreferrer">Read this source entry ↗</a>'
             row_id = escape(point.get("row_uid") or point["source_id"])
-            senses.append(f'<div class="sense" data-source-row="{row_id}">{heading}<div class="sense-meta">{level}{translation_badge}</div>{figure}{explanation}{examples_html(point.get("examples", []))}{original_disclosure}</div>')
+            senses.append(f'<div class="sense" id="{sense_id}" data-source-row="{row_id}">{heading}<div class="sense-meta">{level}{translation_badge}</div>{figure}{explanation}{examples_html(point.get("examples", []))}{original_disclosure}</div>')
         provenance = points[0].get("provenance", {})
         links = [provenance.get("url"), provenance.get("lessonUrl"), provenance.get("pageUrl"), *provenance.get("producerLinks", [])]
         upstream = next((safe_url(link) for link in links if safe_url(link)), '')
         link = f'<a class="upstream-link" href="{escape(upstream)}" rel="noreferrer">Visit source ↗</a>' if upstream else ''
-        sections.append(f'<section class="source-section" id="source-{escape(source)}"><div class="source-heading"><div><span class="source-number">{len(sections)+1:02}</span><h2>{escape(label)}</h2></div>{link}</div>{"".join(senses)}</section>')
+        sub = f'<ol class="toc-senses">{"".join(sense_links)}</ol>' if len(sense_links) > 1 else ''
+        toc.append(f'<li><a href="#source-{escape(source)}"><span class="toc-number">{number:02}</span><span class="toc-label">{escape(label)}</span></a>{sub}</li>')
+        sections.append(f'<section class="source-section" id="source-{escape(source)}"><div class="source-heading"><div><span class="source-number">{number:02}</span><h2>{escape(label)}</h2></div>{link}</div>{"".join(senses)}</section>')
     record = search_record(entry, english=english)
     badges = "".join(f'<span class="level {level.lower()}">{level}</span>' for level in record["levels"])
     variants = ', '.join(entry['variants'])
@@ -293,8 +331,10 @@ def point_page(entry: dict, labels: dict, original: dict, *, english: bool, figu
 <h1 lang="ja">{escape(entry['expression'])}</h1>{f'<p class="entry-reading" lang="ja">{escape(record["reading"])}</p>' if record['reading'] else ''}
 <p class="entry-meaning">{escape(record['summary'])}</p><div class="entry-meta">{badges}<span>{len(points_by_source)} source perspectives</span>{'<span class="translation-badge">English edition</span>' if english else ''}</div>
 {f'<p class="variants">Also found as <span lang="ja">{escape(variants)}</span></p>' if variants else ''}</div>
-<div class="entry-layout"><article class="entry-content">{''.join(sections)}</article><aside class="entry-sidebar"><div class="toc"><span class="eyebrow">IN THIS ENTRY</span>{''.join(toc)}<div class="toc-note">One grammar point, different perspectives. Each explanation keeps its own source.</div>
-<button type="button" id="furigana-toggle" aria-pressed="false">Hide furigana</button></div></aside></div></div>'''
+<div class="entry-layout"><article class="entry-content">{''.join(sections)}</article><aside class="entry-sidebar" id="toc" aria-label="In this entry"><div class="toc" role="navigation" aria-label="In this entry"><div class="toc-head"><span class="eyebrow">IN THIS ENTRY</span><span class="toc-count">{len(points_by_source)}</span><button type="button" class="toc-close" aria-label="Close contents">×</button></div>
+<ol class="toc-list">{''.join(toc)}</ol><div class="toc-note">One grammar point, different perspectives. Each explanation keeps its own source.</div>
+<div class="toc-actions"><button type="button" id="furigana-toggle" aria-pressed="false">Hide furigana</button><a class="toc-top" href="#main">Back to top <span aria-hidden="true">↑</span></a></div></div></aside></div></div>
+<button type="button" class="toc-fab" aria-controls="toc" aria-expanded="false"><span class="fab-ja" lang="ja" aria-hidden="true">目次</span><span>Contents</span><span class="fab-where" aria-hidden="true"></span></button><div class="toc-backdrop" hidden></div>'''
     return shell(entry['expression'], body, root=root, path=grammar_path(entry['expression'], english=english),
                  english=english, alternate=root + grammar_path(entry['expression'], english=not english), description=record['summary'])
 

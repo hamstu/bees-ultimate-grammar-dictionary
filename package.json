@@ -9,7 +9,8 @@
     "build": "make build",
     "validate": "make validate",
     "validate:node": "make validate-node",
-    "test": "make test"
+    "test": "make test",
+    "test:js": "make test-js"
   },
   "dependencies": {
     "adm-zip": "0.6.0",
